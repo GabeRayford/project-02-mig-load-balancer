@@ -1,0 +1,183 @@
+Your Cloud Platform project in this session is set to project-c1a05de0-ba4b-4764-93a.
+Use `gcloud config set project [PROJECT_ID]` to change to a different project.
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud projects list
+PROJECT_ID: project-c1a05de0-ba4b-4764-93a
+NAME: My First Project
+PROJECT_NUMBER: 610972308695
+ENVIRONMENT: 
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud config set project  project-c1a05de0-ba4b-4764-93a
+[environment: untagged] Read more to tag: g.co/cloud/project-env-tag.
+Updated property [core/project].
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud billing accounts list
+ACCOUNT_ID: 01F7C5-0F1019-0EB66A
+NAME: My Billing Account
+OPEN: True
+MASTER_ACCOUNT_ID: 
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud services enable compute.googleapis.com
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud compute instance-templates create ace-web-template \
+    --machine-type=e2-micro \
+    --network=practice-vpc \
+    --subnet=central-subnet \
+    --tags=allow-http-traffic \
+    --metadata=startup-script='#!/bin/bash
+    apt-get update && apt-get install -y apache2
+    echo "Welcome to Project 2 from $(hostname)" > /var/www/html/index.html'
+Did you mean region [us-central1] for subnetwork: [central-subnet] (Y/n)?  y
+
+ERROR: (gcloud.compute.instance-templates.create) Could not fetch resource:
+ - The resource 'projects/project-c1a05de0-ba4b-4764-93a/global/networks/practice-vpc' was not found
+
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud compute networks create practice-vpc --subnet-mode=custom
+Created [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/global/networks/practice-vpc].
+NAME: practice-vpc
+SUBNET_MODE: CUSTOM
+BGP_ROUTING_MODE: REGIONAL
+IPV4_RANGE: 
+GATEWAY_IPV4: 
+INTERNAL_IPV6_RANGE: 
+
+Instances on this network will not be reachable until firewall rules
+are created. As an example, you can allow all internal traffic between
+instances as well as SSH, RDP, and ICMP by running:
+
+$ gcloud compute firewall-rules create <FIREWALL_NAME> --network practice-vpc --allow tcp,udp,icmp --source-ranges <IP_RANGE>
+$ gcloud compute firewall-rules create <FIREWALL_NAME> --network practice-vpc --allow tcp:22,tcp:3389,icmp
+
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud compute networks subnets create central-subnet \
+    --network=practice-vpc \
+    --region=us-central1 \
+    --range=10.0.1.0/24
+Created [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/regions/us-central1/subnetworks/central-subnet].
+NAME: central-subnet
+REGION: us-central1
+NETWORK: practice-vpc
+RANGE: 10.0.1.0/24
+STACK_TYPE: IPV4_ONLY
+IPV6_ACCESS_TYPE: 
+INTERNAL_IPV6_PREFIX: 
+EXTERNAL_IPV6_PREFIX: 
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud compute instance-templates create ace-web-template \
+    --machine-type=e2-micro \
+    --network=practice-vpc \
+    --subnet=central-subnet \
+    --tags=allow-http-traffic \
+    --metadata=startup-script='#!/bin/bash
+    apt-get update && apt-get install -y apache2
+    echo "Welcome to Project 2 from $(hostname)" > /var/www/html/index.html'
+Did you mean region [us-central1] for subnetwork: [central-subnet] (Y/n)?  y
+
+Created [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/global/instanceTemplates/ace-web-template].
+NAME: ace-web-template
+MACHINE_TYPE: e2-micro
+PREEMPTIBLE: 
+CREATION_TIMESTAMP: 2026-09-29T07:24:32.121-07:00
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud compute instance-groups managed create ace-web-mig \
+    --template=ace-web-template \
+    --size=2 \
+    --zone=us-central1-a
+Created [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/zones/us-central1-a/instanceGroupManagers/ace-web-mig].
+NAME: ace-web-mig
+LOCATION: us-central1-a
+SCOPE: zone
+BASE_INSTANCE_NAME: ace-web-mig
+SIZE: 0
+TARGET_SIZE: 2
+INSTANCE_TEMPLATE: ace-web-template
+AUTOSCALED: no
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud compute instance-groups managed set-autoscaling ace-web-mig \
+    --max-num-replicas=5 \
+    --target-cpu-utilization=0.60 \
+    --cool-down-period=60 \
+    --zone=us-central1-a
+Created [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/zones/us-central1-a/autoscalers/ace-web-mig-5is6].
+---
+autoscalingPolicy:
+  coolDownPeriodSec: 60
+  cpuUtilization:
+    utilizationTarget: 0.6
+  maxNumReplicas: 5
+  minNumReplicas: 2
+  mode: ON
+creationTimestamp: '2026-09-29T07:25:05.338-07:00'
+id: '948794064375280814'
+kind: compute#autoscaler
+name: ace-web-mig-5is6
+selfLink: https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/zones/us-central1-a/autoscalers/ace-web-mig-5is6
+status: ACTIVE
+target: https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/zones/us-central1-a/instanceGroupManagers/ace-web-mig
+zone: https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/zones/us-central1-a
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud compute health-checks create http ace-http-health-check --port=80
+Created [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/global/healthChecks/ace-http-health-check].
+NAME: ace-http-health-check
+PROTOCOL: HTTP
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud compute backend-services create ace-backend-service \
+    --protocol=HTTP \
+    --health-checks=ace-http-health-check \
+    --global
+Created [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/global/backendServices/ace-backend-service].
+NAME: ace-backend-service
+BACKENDS: 
+PROTOCOL: HTTP
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud compute backend-services add-backend ace-backend-service \
+    --instance-group=ace-web-mig \
+    --instance-group-zone=us-central1-a \
+    --global
+Updated [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/global/backendServices/ace-backend-service].
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud compute url-maps create ace-web-map --default-service=ace-backend-service
+gcloud compute target-http-proxies create ace-http-proxy --url-map=ace-web-map
+gcloud compute forwarding-rules create ace-http-forwarding-rule \
+    --global \
+    --target-http-proxy=ace-http-proxy \
+    --ports=80
+Created [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/global/urlMaps/ace-web-map].
+NAME: ace-web-map
+DEFAULT_SERVICE: backendServices/ace-backend-service
+Created [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/global/targetHttpProxies/ace-http-proxy].
+NAME: ace-http-proxy
+URL_MAP: ace-web-map
+Created [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/global/forwardingRules/ace-http-forwarding-rule].
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud compute forwarding-rules delete ace-http-forwarding-rule --global --quiet
+gcloud compute instance-groups managed delete ace-web-mig --zone=us-central1-a --quiet
+gcloud compute instance-templates delete ace-web-template --quiet
+gcloud compute networks subnets delete central-subnet --region=us-central1 --quiet
+gcloud compute networks delete practice-vpc --quiet
+Deleted [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/global/forwardingRules/ace-http-forwarding-rule].
+Deleting autoscaler...working..Deleted [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/zones/us-central1-a/autoscalers/ace-web-mig-5is6].             
+Deleting autoscaler...done.                                                                                                                                                          
+Deleting Managed Instance Group...done.                                                                                                                                              
+ERROR: (gcloud.compute.instance-groups.managed.delete) Some requests did not succeed:
+ - The instance_group_manager resource 'projects/project-c1a05de0-ba4b-4764-93a/zones/us-central1-a/instanceGroupManagers/ace-web-mig' is already being used by 'projects/project-c1a05de0-ba4b-4764-93a/global/backendServices/ace-backend-service'
+
+ERROR: (gcloud.compute.instance-templates.delete) Could not fetch resource:
+ - The instance_template resource 'projects/project-c1a05de0-ba4b-4764-93a/global/instanceTemplates/ace-web-template' is already being used by 'projects/project-c1a05de0-ba4b-4764-93a/zones/us-central1-a/instanceGroupManagers/ace-web-mig@9097681793348695233'
+
+ERROR: (gcloud.compute.networks.subnets.delete) Could not fetch resource:
+ - The subnetwork resource 'projects/project-c1a05de0-ba4b-4764-93a/regions/us-central1/subnetworks/central-subnet' is already being used by 'projects/project-c1a05de0-ba4b-4764-93a/zones/us-central1-a/instances/ace-web-mig-w0rt'
+
+ERROR: (gcloud.compute.networks.delete) Could not fetch resource:
+ - The subnetwork resource 'projects/project-c1a05de0-ba4b-4764-93a/regions/us-central1/subnetworks/central-subnet' is already being used by 'projects/project-c1a05de0-ba4b-4764-93a/zones/us-central1-a/instanceGroups/ace-web-mig'
+
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud compute forwarding-rules delete ace-http-forwarding-rule --global --quiet
+gcloud compute target-http-proxies delete ace-http-proxy --quiet
+gcloud compute url-maps delete ace-web-map --quiet
+ERROR: (gcloud.compute.forwarding-rules.delete) Could not fetch resource:
+ - The resource 'projects/project-c1a05de0-ba4b-4764-93a/global/forwardingRules/ace-http-forwarding-rule' was not found
+
+Deleted [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/global/targetHttpProxies/ace-http-proxy].
+Deleted [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/global/urlMaps/ace-web-map].
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud compute backend-services delete ace-backend-service --global --quiet
+Deleted [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/global/backendServices/ace-backend-service].
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud compute health-checks delete http ace-http-health-check --quiet
+Deleted [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/global/healthChecks/ace-http-health-check].
+ERROR: (gcloud.compute.health-checks.delete) Could not fetch resource:
+ - The resource 'projects/project-c1a05de0-ba4b-4764-93a/global/healthChecks/http' was not found
+
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud compute instance-groups managed delete ace-web-mig --zone=us-central1-a --quiet
+Deleting Managed Instance Group...working..Deleted [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/zones/us-central1-a/instanceGroupManagers/ace-web-mig].
+Deleting Managed Instance Group...done.                                                                                                                                              
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud compute instance-templates delete ace-web-template --quiet
+Deleted [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/global/instanceTemplates/ace-web-template].
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud compute networks subnets delete central-subnet --region=us-central1 --quiet
+Deleted [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/regions/us-central1/subnetworks/central-subnet].
+g_rayford2121@cloudshell:~ (project-c1a05de0-ba4b-4764-93a)$ gcloud compute networks delete practice-vpc --quiet
+Deleted [https://www.googleapis.com/compute/v1/projects/project-c1a05de0-ba4b-4764-93a/global/networks/practice-vpc].
